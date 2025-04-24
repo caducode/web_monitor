@@ -1,0 +1,59 @@
+from playwright.sync_api import sync_playwright
+
+
+url_to_watch = "https://www.schutz.com.br/arezzocoocc/v2/schutz/web-parameters"
+    
+def run():
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=False)  # Set to True to run headless
+        context = browser.new_context()
+        page = context.new_page()
+
+        # Intercept and listen for network responses
+        def handle_response(response):
+
+            if url_to_watch in response.url:
+                print(f"✅ Intercepted URL: {response.url}")
+                try:
+                    json_data = response.json()
+                    print("🔎 JSON response:")
+                    print(json_data)
+                except Exception as e:
+                    print(f"⚠️ Could not parse JSON: {e}")
+
+        page.on("response", handle_response)
+
+        # Go to the site (this will trigger the request we're watching for)
+        page.goto("https://www.schutz.com.br/", wait_until="domcontentloaded")
+
+
+        # Wait to ensure the request has time to be processed
+        page.wait_for_timeout(3000)
+
+        page.goto("https://www.vans.com.br/tenis-super-lowpro-marshmallow/p/1002003320001U", wait_until="domcontentloaded")
+
+        url_to_watch = "https://www.vans.com.br/arezzocoocc/v2/vans/productrecommendation?provider=aws"
+
+        page.evaluate("""
+                new Promise((resolve) => {
+                    let totalHeight = 0;
+                    const distance = 500;
+                    const timer = setInterval(() => {
+                        window.scrollBy(0, distance);
+                        totalHeight += distance;
+
+                        if (totalHeight >= document.body.scrollHeight) {
+                            clearInterval(timer);
+                            resolve();
+                        }
+                    }, 300);
+                });
+            """)
+
+        page.on("response", handle_response)
+
+        page.wait_for_timeout(3000)
+
+
+if __name__ == "__main__":
+    run()
